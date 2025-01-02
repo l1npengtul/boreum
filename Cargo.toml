@@ -1,0 +1,10 @@
+[package]
+name = "boreum-lang"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+logos = "0.14.4"
+cstree = "0.12.2"
+lasso = "0.7.3"
+chumsky = "1.0.0-alpha.7"
