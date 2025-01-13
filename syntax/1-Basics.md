@@ -13,13 +13,8 @@ These are the basic primitive types in Boreum:
 - Boolean
 - Interned String (Symbol)
 - String
-- Function
 - Ref
 - FnRef
-- Thread
-- Fibres
-- Table
-- Alias
 
 ### 1.1.1 Nil
 
@@ -98,6 +93,10 @@ Closure    ::= 'fn' Arguments (Shorthand | Body)
 
 Functions are references to Boreum functions. They are subdivided by arity, return type, etc. More will be discussed later.
 
+They are also secretly tables, containing a function pointer `FnRef`.
+
+Mixins can be done by composing a new function into a function field, or using the before and after fields.
+
 ### 1.1.6 Ref and FnRef
 
 Ref are references to external data. These are provided by the embedder.
@@ -106,14 +105,10 @@ FnRef are references to external functions. Again, these are provided by the emb
 
 The Global Store is an example of a `Ref`.
 
-### 1.1.7 Threads and Fibres
+### 1.1.7 Fibres
 
-Threads are not related to OS threads, and are instead handles to coroutines. Even without explicit OS thread support,
-Threads are implemented. Threads always run on the same OS thread as the parent.
-
-Fibres are handles to external coroutines, and allow for M:N scheduling, where M is Boreum Fibres and N is OS Threads.
-
-Both Fibres and Threads are first class - `main` runs as the first thread of the `main` fibre.
+Fibres are stackful coroutines with flexible scheduling depending on the type of nursury used to spawn them. The default nursury will spawn
+fibres in a M:N mode. They exist only within the runtime.
 
 ### 1.1.8 Tables and Aliases
 ```
@@ -174,7 +169,7 @@ The global store
 
 ### 1.3.1 Option and Result
 
-Option and Result are both returned from maps using `Union`s, mentioned later.
+Option and Result are both returned from maps using `Variant`s, mentioned later.
 They can be used in a `when` expression for pattern matching. Otherwise, they are used
 as they would be in Rust, and is the ideal way of handling errors/missing values. (No unwinding!)
 
@@ -307,11 +302,11 @@ Note that `impl` will overwrite composed from the `Construct` definition, but yo
 Methods are also internally tracked from the "FARAWAY" table - it is possible to have the field "turtle" ("KAIWAI") _and_ the method
 "turtle" ("FARAWAY"), and also to alias "turtle" ("KAIWAI") to "turtle" ("FARAWAY")
 
-### 1.5.5 Unions
+### 1.5.5 Variant
 
 ```
 Tag   ::= (Symbol | Identifier) ('(' Identifier ('requires' TypeExpression)? ('=' Expression)? ')')?
-Union ::= 'union' TypeIdentifier 'do'
+Variant ::= 'variant' TypeIdentifier 'do'
             Tag ('|' Tag)?
           'end'
 ```
@@ -359,6 +354,10 @@ Figments are stack-allocated when possible.
 
 Marker allows you to define a zero-size Figment.
 
+### 1.5.8 Unions
+
+Unions are the value-type version of `Variant`. This type exists to map onto the WASM data model.
+
 ## 1.6 Structured Concurrency Model
 
 ```
@@ -376,7 +375,7 @@ box. Does it outlive the current function? What about error handling? With struc
 explicit. 
 
 The language and runtime enforce the rule that no concurrency may be done outside of a nursury.
-When calling a function containing yields outside of a nursury, it will simply be skipped over.
+When calling a function containing yields outside of a nursury, it will simply block until completion.
 
 ### 1.6.1 Mesmerizing Functions
 
