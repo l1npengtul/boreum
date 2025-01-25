@@ -18,26 +18,37 @@
           inherit system;
           overlays = [rust-overlay.overlays.default];
         };
+        rustbin = pkgs.rust-bin.selectLatestNightlyWith (toolchain:
+          toolchain.default.override {
+            extensions = ["rust-src"];
+          });
       in {
+        formatter = pkgs.alejandra;
+
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            rust-bin.stable.latest.default
-            rust-bin.stable.latest.rustfmt
-            rust-bin.stable.latest.clippy
-            stdenv
-          ];
-          nativeBuildInputs = [
-            pkgs.pkg-config
-            pkgs.cmake
-            pkgs.vcpkg
-          ];
-          packages = with pkgs; [
-            rust-analyzer
-            rustPlatform.bindgenHook
-            llvmPackages.libclang.lib
-            llvmPackages.clang
-            alejandra
-          ];
+          packages = [
+            rustbin
+          ] ++ (with pkgs; [
+              llvmPackages.libclang.lib
+              llvmPackages.clang
+              pkg-config
+              cmake
+              vcpkg
+              rustPlatform.bindgenHook
+              xmlstarlet
+          ]);
+
+          env.RUST_SRC_PATH = "${rustbin}/lib/rustlib/src/rust/library";
+          env.LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+
+          shellHook = let
+            pathToRustProject = "/project/component[@name='RustProjectSettings']";
+          in
+            ''
+              echo "WONDERHOOOOOY!!!!"
+              xmlstarlet edit --inplace --update "${pathToRustProject}/option[@name='explicitPathToStdlib']/@value" --value "${rustbin}/lib/rustlib/src/rust/library" .idea/workspace.xml
+              xmlstarlet edit --inplace --update "${pathToRustProject}/option[@name='toolchainHomeDirectory']/@value" --value "${rustbin}/bin" .idea/workspace.xml
+            '';
         };
       }
     );
